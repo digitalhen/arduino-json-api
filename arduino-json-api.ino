@@ -1,13 +1,28 @@
+/*
+  Arduino JSON api & web server
+  
+  A simple application to allow you to buzz (for 5 seconds), turn on, turn off, and get the state of the pins on your Arduino board.
+  
+  This was built in to allow the remote control of a door buzzer and is intended to be paired with an attractive front end. It can be called by calling: http://<ip address>/<action, eg. BUZZ>/<pin, eg. 2>
+
+  Circuit: 
+  * WiFi shield attached
+  * Something connected to the digital pins
+  
+  created 26 Nov 2016
+  by digitalhen (Henry Williams)
+  
+*/  
 #include <SPI.h>
 #include <WiFi101.h>
 #include <ArduinoJson.h>
 
-char ssid[] = "ssid";      //  your network SSID (name)
-char pass[] = "password";   // your network password
-int keyIndex = 0;                 // your network key Index number (needed only for WEP)
-String action = ""; // what is the action
-int actionPin = 0; // which pin are we performing the action on
-int validPins[] = {1,2,3,4,6,8,9,10,11,12,13};
+char ssid[] = "ssid";                             //  your network SSID (name)
+char pass[] = "password";                         // your network password
+int keyIndex = 0;                                 // your network key Index number (needed only for WEP)
+String action = "";                               // what is the action
+int actionPin = 0;                                // which pin are we performing the action on
+int validPins[] = {1,2,3,4,6,8,9,10,11,12,13};    
 int validPinSize = 11;
 String getRequest = "";
 
