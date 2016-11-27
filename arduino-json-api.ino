@@ -17,13 +17,13 @@
 #include <WiFi101.h>
 #include <ArduinoJson.h>
 
-char ssid[] = "ssid";                             //  your network SSID (name)
+char ssid[] = "ssid";                             // your network SSID (name)
 char pass[] = "password";                         // your network password
 int keyIndex = 0;                                 // your network key Index number (needed only for WEP)
 String action = "";                               // what is the action
 int actionPin = 0;                                // which pin are we performing the action on
-int validPins[] = {1,2,3,4,6,8,9,10,11,12,13};    
-int validPinSize = 11;
+int validPins[] = {1,2,3,4,6,8,9,10,11,12,13};    // which pins should be allowed for actions by the program (some are reserved for the WiFi shield, so I've excluded them)
+int validPinSize = 11;                            // how long is the array of pins --- this should be updated
 String getRequest = "";
 
 int status = WL_IDLE_STATUS;
@@ -31,7 +31,6 @@ WiFiServer server(80);
 
 void setup() {
   Serial.begin(9600);      // initialize serial communication
-
 
   // check for the presence of the shield:
   if (WiFi.status() == WL_NO_SHIELD) {
@@ -75,16 +74,16 @@ void loop() {
             client.println("Content-type:application/json");
             client.println();
 
-            // TODO: Handle the response here. If we don't have an action and a number, tell the client it's an invalid response.
+            // parse the URL to figure out what we're doing, by tokenizing based on the '/'
             action = getStringPartByNr(getRequest, '/', 1);
             actionPin = getStringPartByNr(getRequest, '/', 2).toInt();
 
-            // set up the json here
-            DynamicJsonBuffer jsonBuffer; // json buffer
-            JsonObject& root = jsonBuffer.createObject();
-            JsonArray& pins = root.createNestedArray("data");
+            // set up the json processing here
+            DynamicJsonBuffer jsonBuffer;                     // json buffer
+            JsonObject& root = jsonBuffer.createObject();     // top level JSON object
+            JsonArray& pins = root.createNestedArray("data"); // nested array to hold the detail of the pin statuses
 
-
+            // if we have an action, and it's state, and we have a particular allowed pin
             if (action.length() > 0 && action == "STATE" && actionPin > 0 && arrayIncludeElement(validPins,actionPin,validPinSize)){
               //client.println("You want the state of pin " + String(actionPin));
               pinMode(actionPin, OUTPUT);
@@ -95,6 +94,7 @@ void loop() {
               pin["actionPin"] = actionPin;
               pin["val"] = val;
               root.printTo(client);
+            // TODO: allow for checking of the state of every valid pin
             } else if(action.length() > 0 && action == "STATE" && actionPin == 0) {
               root["status"] = "work in progress";
               root["action"] = action;
@@ -109,6 +109,7 @@ void loop() {
               } */
               
               root.printTo(client);
+            // turns on the specified valid pin and puts the result back in the json
             } else if (action.length() > 0 && action == "ON" && actionPin > 0 && arrayIncludeElement(validPins,actionPin,validPinSize)){
               //client.println("You want to turn on pin " + String(actionPin));
               pinMode(actionPin, OUTPUT);
@@ -120,6 +121,7 @@ void loop() {
               pin["actionPin"] = actionPin;
               pin["val"] = val;
               root.printTo(client);
+            // turns off the specified valid pin and puts the result back in the json
             } else if (action.length() > 0 && action == "OFF" && actionPin > 0 && arrayIncludeElement(validPins,actionPin,validPinSize)){
               //client.println("You want to turn off pin " + String(actionPin));
               pinMode(actionPin, OUTPUT);
@@ -131,6 +133,7 @@ void loop() {
               pin["actionPin"] = actionPin;
               pin["val"] = val;
               root.printTo(client);
+            // turns on a valid pin for a fixed length of time, currently 5 seconds. we turn off once the client has been disconnected so they don't have to wait around
             } else if (action.length() > 0 && action == "BUZZ" && actionPin > 0 && arrayIncludeElement(validPins,actionPin,validPinSize)){
               //client.println("You want to buzz pin " + String(actionPin));
               pinMode(actionPin, OUTPUT);
@@ -142,6 +145,7 @@ void loop() {
               pin["actionPin"] = actionPin;
               pin["val"] = val;
               root.printTo(client);
+            // nothing else matches so it must be a malformed request
             } else { 
               root["status"] = "fail";
               root.printTo(client);
@@ -198,6 +202,7 @@ void loop() {
   }
 }
 
+// simple method for detailing the WiFi connection to the console
 void printWifiStatus() {
   // print the SSID of the network you're attached to:
   Serial.print("SSID: ");
@@ -218,7 +223,7 @@ void printWifiStatus() {
   Serial.println(ip);
 }
 
-// tool to tokenize
+// tool to tokenize the url
 // http://arduino.stackexchange.com/questions/1013/how-do-i-split-an-incoming-string
 // spliting a string and return the part nr index split by separator
 String getStringPartByNr(String data, char separator, int index) {
@@ -247,6 +252,7 @@ String getStringPartByNr(String data, char separator, int index) {
     return dataPart;
 }
 
+// quick method to test if an array (the validPins) has the element we're looking for
  boolean arrayIncludeElement(int array[], int element, int arraySize) {
  for (int i = 0; i < arraySize; i++) {
       if (array[i] == element) {
